@@ -1,7 +1,10 @@
+from dotenv import load_dotenv
+load_dotenv()  # Load .env file before any other imports
+
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, field_validator
-from typing import Optional
+from typing import Optional, Literal
 import os
 import uvicorn
 
@@ -94,6 +97,125 @@ async def get_latest_results():
 @app.get("/health")
 async def health():
     return {"status": "ok", "agent": "AutoHeal CI", "version": "1.0.0"}
+
+
+@app.get("/schema")
+async def get_schema():
+    """
+    Machine-readable API contract for frontend / judge inspection.
+    Returns field definitions, enums, and status types.
+    Frontend MUST NOT compute any logic — only display values from this schema.
+    """
+    return {
+        "version": "1.0.0",
+        "enums": {
+            "RunStatus": ["idle", "running", "done", "error"],
+            "BugType": [
+                "LINTING",
+                "SYNTAX",
+                "INDENTATION",
+                "TYPE",
+                "TEST_FAILURE",
+                "TIMEOUT",
+                "DEPENDENCY",
+                "UNKNOWN",
+            ],
+            "CIConclusion": ["success", "failure", "cancelled", "skipped", "timeout"],
+        },
+        "endpoints": {
+            "POST /run-agent": {
+                "description": "Start autonomous healing agent. Runs in background.",
+                "request": {
+                    "repo_url": "string (required) — full GitHub HTTPS URL",
+                    "github_owner": "string (optional)",
+                    "github_repo": "string (optional)",
+                    "enable_ci_polling": "boolean (optional, default true)",
+                    "enable_push": "boolean (optional, default true)",
+                },
+                "response": {"status": "'started'", "message": "string"},
+            },
+            "GET /status": {
+                "description": "Poll current run state. Returns: {status, run_id, result}.",
+                "response": {
+                    "status": "RunStatus enum",
+                    "run_id": "string | null",
+                    "result": "AgentResults | {error: string} | null",
+                },
+            },
+            "GET /results/latest": {
+                "description": "Retrieve latest results.json. 404 if none exists.",
+                "response": "AgentResults schema (see below)",
+            },
+            "GET /health": {
+                "description": "Health check.",
+                "response": {"status": "'ok'", "agent": "string", "version": "string"},
+            },
+            "GET /schema": {
+                "description": "This endpoint — machine-readable API contract.",
+            },
+        },
+        "schemas": {
+            "AgentResults": {
+                "run_id": "string — unique identifier for this run",
+                "timestamp": "string — ISO 8601 UTC datetime",
+                "repo": "string — GitHub repo URL",
+                "branch": "string — base branch name",
+                "success": "boolean — true if ALL failures were fixed",
+                "time_taken_seconds": "float — wall-clock duration of the run",
+                "iterations": "integer — number of fixes attempted",
+                "commit_count": "integer — number of commits made",
+                "score": "ScoreBreakdown",
+                "failures": "FailureItem[]",
+                "fixes": "FixItem[]",
+                "ci_timeline": "CITimelineNode[]",
+            },
+            "ScoreBreakdown": {
+                "total": "integer — BACKEND COMPUTED ONLY. Frontend: display as-is.",
+                "breakdown": {
+                    "base": "integer — 100 if success, 0 if not",
+                    "speed_bonus": "integer — +10 if time_taken_seconds < 60",
+                    "commit_penalty": "integer — negative: -2 per commit above 20",
+                },
+            },
+            "FailureItem": {
+                "file": "string — relative path to file",
+                "test_id": "string — test identifier",
+                "line": "string | integer — line reference",
+                "error_message": "string — error description",
+                "raw_output": "string (optional) — full test runner output",
+                "bug_type": "BugType enum",
+            },
+            "FixItem": {
+                "failure": "FailureItem — the failure that was fixed",
+                "branch": "string — MUST start with 'ai-agent/'",
+                "commit_message": "string — MUST start with 'fix:'",
+                "retry_count": "integer — number of attempts made",
+                "iterations": "IterationRecord[]",
+            },
+            "IterationRecord": {
+                "attempt": "integer — attempt number (1-based)",
+                "passed": "boolean — did tests pass on this attempt",
+                "duration_s": "float — time for this attempt in seconds",
+            },
+            "CITimelineNode": {
+                "iteration": "integer — which fix iteration this CI run is for",
+                "branch": "string — branch that was pushed",
+                "passed": "boolean — did CI pass",
+                "conclusion": "CIConclusion enum",
+                "started_at": "string — ISO 8601 UTC datetime",
+                "completed_at": "string — ISO 8601 UTC datetime",
+                "ci_url": "string (optional) — link to GitHub Actions run",
+            },
+        },
+        "contract_rules": [
+            "Frontend MUST NOT compute scores — read score.total and score.breakdown as-is",
+            "Branch names MUST start with 'ai-agent/'",
+            "Commit messages MUST start with 'fix:'",
+            "bug_type MUST be one of the BugType enum values exactly",
+            "All timestamps MUST be ISO 8601 with UTC offset",
+            "time_taken_seconds MUST be > 0 for any real run",
+        ],
+    }
 
 
 # ─── Dev entry ────────────────────────────────────────────────────────────────

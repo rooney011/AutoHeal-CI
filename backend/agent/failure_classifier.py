@@ -50,12 +50,17 @@ CLASSIFICATION_RULES: list[tuple[re.Pattern, BugType]] = [
 def classify_failure(error_message: str, raw_output: str = "") -> BugType:
     """
     Main classifier. Applies regex rules in order.
-    Falls back to UNKNOWN only if no rule matches.
+    Checks error_message first (scoped per failure), then falls back to raw_output.
+    This is important because raw_output may span multiple failures.
     """
-    combined = f"{error_message}\n{raw_output}"
-
+    # Pass 1: check scoped error_message only
     for pattern, bug_type in CLASSIFICATION_RULES:
-        if pattern.search(combined):
+        if pattern.search(error_message):
+            return bug_type
+
+    # Pass 2: fall back to full raw_output if nothing matched
+    for pattern, bug_type in CLASSIFICATION_RULES:
+        if pattern.search(raw_output):
             return bug_type
 
     return BugType.UNKNOWN

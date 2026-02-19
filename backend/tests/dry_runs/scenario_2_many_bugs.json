@@ -1,0 +1,127 @@
+{
+  "_scenario": "2 — Many Bugs",
+  "_description": "Repo with 4 bugs of mixed types (SYNTAX, TYPE, LINTING, DEPENDENCY). 3 are fixed, 1 (DEPENDENCY) fails after max retries. score = partial.",
+  "_expected": { "score": 0, "success": false, "fix_count": 3 },
+  "inject": {
+    "repo_url": "https://github.com/rift-test/many-bugs-repo",
+    "branch": "main",
+    "success": false,
+    "time_taken_seconds": 187.4,
+    "iterations": 3,
+    "commit_count": 3,
+    "failures": [
+      {
+        "file": "src/parser.py",
+        "test_id": "tests/test_parser.py::test_tokenize",
+        "line": 8,
+        "error_message": "SyntaxError: invalid syntax",
+        "raw_output": "FAILED tests/test_parser.py::test_tokenize\n  SyntaxError: invalid syntax (parser.py, line 8)",
+        "bug_type": "SYNTAX"
+      },
+      {
+        "file": "src/utils.py",
+        "test_id": "tests/test_utils.py::test_format",
+        "line": 34,
+        "error_message": "TypeError: unsupported operand type(s) for +: 'int' and 'str'",
+        "raw_output": "FAILED tests/test_utils.py::test_format\n  TypeError: unsupported operand type(s) for +: 'int' and 'str'",
+        "bug_type": "TYPE"
+      },
+      {
+        "file": "src/validator.py",
+        "test_id": "tests/test_validator.py::test_lint",
+        "line": 55,
+        "error_message": "F401 'os' imported but unused",
+        "raw_output": "FAILED tests/test_validator.py::test_lint\n  F401 'os' imported but unused",
+        "bug_type": "LINTING"
+      },
+      {
+        "file": "src/db.py",
+        "test_id": "tests/test_db.py::test_connect",
+        "line": 1,
+        "error_message": "ModuleNotFoundError: No module named 'psycopg2'",
+        "raw_output": "FAILED tests/test_db.py::test_connect\n  ModuleNotFoundError: No module named 'psycopg2'",
+        "bug_type": "DEPENDENCY"
+      }
+    ],
+    "fixes": [
+      {
+        "failure": {
+          "file": "src/parser.py",
+          "test_id": "tests/test_parser.py::test_tokenize",
+          "line": 8,
+          "error_message": "SyntaxError: invalid syntax",
+          "raw_output": "FAILED tests/test_parser.py::test_tokenize",
+          "bug_type": "SYNTAX"
+        },
+        "branch": "ai-agent/fix-SYNTAX-001",
+        "commit_message": "fix: Resolve SYNTAX in src/parser.py",
+        "retry_count": 2,
+        "iterations": [
+          { "attempt": 1, "passed": false, "duration_s": 5.1 },
+          { "attempt": 2, "passed": true, "duration_s": 4.8 }
+        ]
+      },
+      {
+        "failure": {
+          "file": "src/utils.py",
+          "test_id": "tests/test_utils.py::test_format",
+          "line": 34,
+          "error_message": "TypeError: unsupported operand type(s) for +: 'int' and 'str'",
+          "raw_output": "FAILED tests/test_utils.py::test_format",
+          "bug_type": "TYPE"
+        },
+        "branch": "ai-agent/fix-TYPE-002",
+        "commit_message": "fix: Resolve TYPE in src/utils.py",
+        "retry_count": 1,
+        "iterations": [
+          { "attempt": 1, "passed": true, "duration_s": 3.9 }
+        ]
+      },
+      {
+        "failure": {
+          "file": "src/validator.py",
+          "test_id": "tests/test_validator.py::test_lint",
+          "line": 55,
+          "error_message": "F401 'os' imported but unused",
+          "raw_output": "FAILED tests/test_validator.py::test_lint",
+          "bug_type": "LINTING"
+        },
+        "branch": "ai-agent/fix-LINTING-003",
+        "commit_message": "fix: Resolve LINTING in src/validator.py",
+        "retry_count": 1,
+        "iterations": [
+          { "attempt": 1, "passed": true, "duration_s": 2.3 }
+        ]
+      }
+    ],
+    "ci_timeline": [
+      {
+        "iteration": 1,
+        "branch": "ai-agent/fix-SYNTAX-001",
+        "passed": true,
+        "conclusion": "success",
+        "started_at": "2026-02-19T10:00:00+00:00",
+        "completed_at": "2026-02-19T10:01:30+00:00",
+        "ci_url": "https://github.com/rift-test/many-bugs-repo/actions/runs/2001"
+      },
+      {
+        "iteration": 2,
+        "branch": "ai-agent/fix-TYPE-002",
+        "passed": true,
+        "conclusion": "success",
+        "started_at": "2026-02-19T10:02:00+00:00",
+        "completed_at": "2026-02-19T10:03:10+00:00",
+        "ci_url": "https://github.com/rift-test/many-bugs-repo/actions/runs/2002"
+      },
+      {
+        "iteration": 3,
+        "branch": "ai-agent/fix-LINTING-003",
+        "passed": true,
+        "conclusion": "success",
+        "started_at": "2026-02-19T10:04:00+00:00",
+        "completed_at": "2026-02-19T10:05:07+00:00",
+        "ci_url": "https://github.com/rift-test/many-bugs-repo/actions/runs/2003"
+      }
+    ]
+  }
+}

@@ -8,12 +8,6 @@ import json
 import re
 from typing import Optional
 
-try:
-    import google.generativeai as genai
-    _USE_LLM = True
-except ImportError:
-    _USE_LLM = False
-
 
 # ─── Strict System Prompt ──────────────────────────────────────────────────────
 SYSTEM_PROMPT = """You are a precision code repair agent. Your ONLY job is to generate the minimal fix for a specific bug.
@@ -44,13 +38,32 @@ def generate_fix(
     error_message: str,
 ) -> Optional[dict]:
     """
-    Generate a fix patch using LLM.
+    Generate a fix patch using LLM (OpenAI-compatible capability).
     Returns a dict with file, line, original, patch — or None on failure.
     """
-    if not _USE_LLM:
-        print("[FixGen] LLM not available. Skipping.")
+    try:
+        from openai import OpenAI
+    except ImportError:
+        print("[FixGen] openai library not installed. Skipping.")
         return None
 
+    api_key = os.environ.get("LLM_API_KEY") or os.environ.get("GEMINI_API_KEY")
+    base_url = os.environ.get("LLM_BASE_URL", "https://api.openai.com/v1")
+    model_name = os.environ.get("LLM_MODEL", "gpt-4o")
+
+    # Special handling for Groq or other providers if needed
+    if "groq" in base_url and not model_name.startswith("llama") and not model_name.startswith("mixtral") and not model_name.startswith("gemma"):
+         # specific handling if user kept "gemini" in model name but switched URL
+         # but for now we trust the user to set LLM_MODEL correctly
+         pass
+
+    if not api_key:
+        print("[FixGen] LLM_API_KEY (or GEMINI_API_KEY) not set. Skipping LLM.")
+        return None
+
+    # strict JSON mode for OpenAI/Groq if supported, otherwise just system prompt
+    # Groq supports json_object response_format
+    
     user_message = _build_user_message(
         file_path=file_path,
         file_content=file_content,
@@ -59,29 +72,27 @@ def generate_fix(
         error_message=error_message,
     )
 
-    api_key = os.environ.get("GEMINI_API_KEY")
-    model_name = os.environ.get("LLM_MODEL", "gemini-2.0-flash")
-
-    if not api_key:
-        print("[FixGen] GEMINI_API_KEY not set. Skipping LLM.")
-        return None
+    client = OpenAI(api_key=api_key, base_url=base_url)
 
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(
-            model_name=model_name,
-            system_instruction=SYSTEM_PROMPT,
-            generation_config=genai.GenerationConfig(
-                temperature=0,      # Deterministic
-                max_output_tokens=512,
-            ),
+        print(f"[FixGen] Using model: {model_name} via {base_url}")
+        response = client.chat.completions.create(
+            model=model_name,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_message}
+            ],
+            temperature=0,
+            max_tokens=1024,
+            response_format={"type": "json_object"}
         )
-        response = model.generate_content(user_message)
-        raw = response.text.strip()
+        raw = response.choices[0].message.content.strip()
         return _parse_and_validate(raw)
+
     except Exception as e:
-        print(f"[FixGen] Gemini call failed: {e}")
+        print(f"[FixGen] LLM call failed: {e}")
         return None
+
 
 
 def _build_user_message(

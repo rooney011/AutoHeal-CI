@@ -11,11 +11,11 @@ from typing import Optional
 
 # ─── Constants ────────────────────────────────────────────────────────────────
 BRANCH_PREFIX = "ai-agent"
-COMMIT_PREFIX = "[AI-AGENT]"
+COMMIT_PREFIX = "fix:"          # must match API contract & judge checklist
 PROTECTED_BRANCHES = {"main", "master", "dev", "develop", "production"}
 
 BRANCH_PATTERN = re.compile(
-    r"^ai-agent/fix-(LINTING|SYNTAX|TYPE|TEST_FAILURE|TIMEOUT|DEPENDENCY|UNKNOWN)-\d{3,}$"
+    r"^ai-agent/fix-(LINTING|SYNTAX|INDENTATION|TYPE|TEST_FAILURE|TIMEOUT|DEPENDENCY|UNKNOWN)-\d{3,}$"
 )
 
 
@@ -63,9 +63,10 @@ def _get_current_branch(repo_path: str) -> str:
 def generate_commit_message(action: str, description: str) -> str:
     """
     Generate a standardized commit message.
-    Example: [AI-AGENT] Fix: Remove unused import in main.py
+    Format: fix: {action}: {description}
+    Example: fix: Resolve SYNTAX in src/app.py
     """
-    message = f"{COMMIT_PREFIX} {action}: {description}"
+    message = f"{COMMIT_PREFIX} {description}"
     if not validate_commit_message(message):
         raise ValueError(f"Generated commit message is invalid: '{message}'")
     return message

@@ -1,0 +1,52 @@
+{
+  "_scenario": "1 — Single Bug",
+  "_description": "Repo with 1 SYNTAX bug. Agent finds it, fixes it, CI passes. Score = 110 (base 100 + speed bonus 10).",
+  "_expected": { "score": 110, "success": true, "fix_count": 1 },
+  "inject": {
+    "repo_url": "https://github.com/rift-test/single-bug-repo",
+    "branch": "main",
+    "success": true,
+    "time_taken_seconds": 45.0,
+    "iterations": 1,
+    "commit_count": 1,
+    "failures": [
+      {
+        "file": "src/app.py",
+        "test_id": "tests/test_app.py::test_parse",
+        "line": 12,
+        "error_message": "SyntaxError: invalid syntax",
+        "raw_output": "FAILED tests/test_app.py::test_parse\n  SyntaxError: invalid syntax (app.py, line 12)",
+        "bug_type": "SYNTAX"
+      }
+    ],
+    "fixes": [
+      {
+        "failure": {
+          "file": "src/app.py",
+          "test_id": "tests/test_app.py::test_parse",
+          "line": 12,
+          "error_message": "SyntaxError: invalid syntax",
+          "raw_output": "FAILED tests/test_app.py::test_parse\n  SyntaxError: invalid syntax (app.py, line 12)",
+          "bug_type": "SYNTAX"
+        },
+        "branch": "ai-agent/fix-SYNTAX-001",
+        "commit_message": "fix: Resolve SYNTAX in src/app.py",
+        "retry_count": 1,
+        "iterations": [
+          { "attempt": 1, "passed": true, "duration_s": 3.2 }
+        ]
+      }
+    ],
+    "ci_timeline": [
+      {
+        "iteration": 1,
+        "branch": "ai-agent/fix-SYNTAX-001",
+        "passed": true,
+        "conclusion": "success",
+        "started_at": "2026-02-19T10:00:00+00:00",
+        "completed_at": "2026-02-19T10:00:45+00:00",
+        "ci_url": "https://github.com/rift-test/single-bug-repo/actions/runs/1001"
+      }
+    ]
+  }
+}

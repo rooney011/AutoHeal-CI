@@ -38,17 +38,72 @@ def apply_patch(repo_path: str, patch: dict) -> bool:
     original_snippet = patch["original"]
     replacement = patch["patch"]
 
-    if original_snippet not in original_content:
-        print(f"[PatchValidator] Original snippet not found in file. Cannot apply.")
+    # 1. Try Exact Match
+    if original_snippet in original_content:
+        new_content = original_content.replace(original_snippet, replacement, 1)
+        _write_file(file_abs, new_content)
+        print(f"[PatchValidator] Patch applied (Exact) to '{file_rel}'.")
+        return True
+
+    # 2. Try Fuzzy Match (Ignore whitespace/indentation)
+    print("[PatchValidator] Exact match failed. Trying fuzzy match...")
+    
+    # Split into lines and strip
+    snippet_lines = [l.strip() for l in original_snippet.strip().splitlines() if l.strip()]
+    file_lines = original_content.splitlines()
+    
+    if not snippet_lines:
+        print("[PatchValidator] Original snippet is empty or whitespace only. Cannot apply safely.")
         return False
 
-    new_content = original_content.replace(original_snippet, replacement, 1)
+    # Scan for matching block
+    match_start_index = -1
+    
+    for i in range(len(file_lines)):
+        # Check if snippet matches starting at line i
+        match = True
+        for j, s_line in enumerate(snippet_lines):
+            if i + j >= len(file_lines):
+                match = False
+                break
+            if file_lines[i + j].strip() != s_line:
+                match = False
+                break
+        
+        if match:
+            match_start_index = i
+            break
+    
+    if match_start_index != -1:
+        # Reconstruct the EXACT text from the file that matched
+        match_end_index = match_start_index + len(snippet_lines)
+        # We need to capture the full lines including newlines from the original file
+        # But splitlines() eats newlines. 
+        # Safer way: Find the byte offsets or character offsets.
+        
+        # Simpler approach: Re-read file, find the lines by index
+        with open(file_abs, "r") as f:
+            lines_with_endings = f.readlines()
+            
+        timestamp = int(time.time())
+        
+        # Verify indices are valid
+        if match_end_index <= len(lines_with_endings):
+            # Construct the exact block to replace
+            matched_block = "".join(lines_with_endings[match_start_index:match_end_index])
+            
+            # Now replace that block in the full content
+            new_content = original_content.replace(matched_block, replacement, 1)
+            _write_file(file_abs, new_content)
+            print(f"[PatchValidator] Patch applied (Fuzzy) to '{file_rel}' at line {match_start_index+1}.")
+            return True
 
-    with open(file_abs, "w") as f:
-        f.write(new_content)
+    print(f"[PatchValidator] Original snippet not found in file (even fuzzily). Cannot apply.")
+    return False
 
-    print(f"[PatchValidator] Patch applied to '{file_rel}'.")
-    return True
+def _write_file(path: str, content: str):
+    with open(path, "w") as f:
+        f.write(content)
 
 
 def rollback_patch(repo_path: str, patch: dict, backup_content: str) -> None:

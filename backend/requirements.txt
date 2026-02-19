@@ -10,3 +10,4 @@ google-generativeai
 flake8
 pylint
 python-dotenv
+openai>=1.0.0

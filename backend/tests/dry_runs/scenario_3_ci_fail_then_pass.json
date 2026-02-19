@@ -1,0 +1,62 @@
+{
+  "_scenario": "3 — CI Fails Once Then Passes",
+  "_description": "Repo with 1 TYPE bug. Fix is applied. CI fails on first check (flaky runner), then passes on second attempt. Timeline has 2 CI entries for the same branch.",
+  "_expected": { "score": 110, "success": true, "fix_count": 1, "ci_timeline_length": 2 },
+  "inject": {
+    "repo_url": "https://github.com/rift-test/flaky-ci-repo",
+    "branch": "main",
+    "success": true,
+    "time_taken_seconds": 52.8,
+    "iterations": 1,
+    "commit_count": 1,
+    "failures": [
+      {
+        "file": "src/models.py",
+        "test_id": "tests/test_models.py::test_validate_user",
+        "line": 27,
+        "error_message": "TypeError: argument of type 'NoneType' is not iterable",
+        "raw_output": "FAILED tests/test_models.py::test_validate_user\n  TypeError: argument of type 'NoneType' is not iterable",
+        "bug_type": "TYPE"
+      }
+    ],
+    "fixes": [
+      {
+        "failure": {
+          "file": "src/models.py",
+          "test_id": "tests/test_models.py::test_validate_user",
+          "line": 27,
+          "error_message": "TypeError: argument of type 'NoneType' is not iterable",
+          "raw_output": "FAILED tests/test_models.py::test_validate_user",
+          "bug_type": "TYPE"
+        },
+        "branch": "ai-agent/fix-TYPE-001",
+        "commit_message": "fix: Resolve TYPE in src/models.py",
+        "retry_count": 1,
+        "iterations": [
+          { "attempt": 1, "passed": true, "duration_s": 4.1 }
+        ]
+      }
+    ],
+    "ci_timeline": [
+      {
+        "iteration": 1,
+        "branch": "ai-agent/fix-TYPE-001",
+        "passed": false,
+        "conclusion": "failure",
+        "started_at": "2026-02-19T10:00:00+00:00",
+        "completed_at": "2026-02-19T10:00:30+00:00",
+        "ci_url": "https://github.com/rift-test/flaky-ci-repo/actions/runs/3001",
+        "_note": "CI runner was flaky — same branch re-ran after 15s and passed"
+      },
+      {
+        "iteration": 1,
+        "branch": "ai-agent/fix-TYPE-001",
+        "passed": true,
+        "conclusion": "success",
+        "started_at": "2026-02-19T10:00:45+00:00",
+        "completed_at": "2026-02-19T10:01:30+00:00",
+        "ci_url": "https://github.com/rift-test/flaky-ci-repo/actions/runs/3002"
+      }
+    ]
+  }
+}

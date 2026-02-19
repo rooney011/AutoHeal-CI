@@ -1,0 +1,33 @@
+{
+  "_scenario": "4 — Never Passes",
+  "_description": "Repo with 2 bugs. Both exhaust all 5 retry attempts without success. No commits made. Score = 0.",
+  "_expected": { "score": 0, "success": false, "fix_count": 0, "commit_count": 0 },
+  "inject": {
+    "repo_url": "https://github.com/rift-test/unfixable-repo",
+    "branch": "main",
+    "success": false,
+    "time_taken_seconds": 301.5,
+    "iterations": 0,
+    "commit_count": 0,
+    "failures": [
+      {
+        "file": "src/core.py",
+        "test_id": "tests/test_core.py::test_run",
+        "line": 3,
+        "error_message": "IndentationError: unexpected indent",
+        "raw_output": "FAILED tests/test_core.py::test_run\n  IndentationError: unexpected indent (core.py, line 3)",
+        "bug_type": "INDENTATION"
+      },
+      {
+        "file": "src/api_handler.py",
+        "test_id": "tests/test_api.py::test_endpoint",
+        "line": 99,
+        "error_message": "TimeoutError: request timed out after 30s",
+        "raw_output": "FAILED tests/test_api.py::test_endpoint\n  TimeoutError: request timed out after 30s",
+        "bug_type": "TIMEOUT"
+      }
+    ],
+    "fixes": [],
+    "ci_timeline": []
+  }
+}

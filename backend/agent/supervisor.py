@@ -8,6 +8,7 @@ import tempfile
 import shutil
 import uuid
 import time
+import traceback
 from datetime import datetime, timezone
 
 from agent.repo_analyzer import analyze_repo
@@ -63,6 +64,7 @@ class Supervisor:
         all_fixes = []
         total_commits = 0
         overall_success = False
+        classified_failures = []  # Always in scope for build_results
 
         print(f"\n[Supervisor] ═══ Run {self.run_id} ═══")
         print(f"[Supervisor] Repo: {self.repo_url}")
@@ -86,6 +88,22 @@ class Supervisor:
                 raw_failures = []
             else:
                 raw_failures = test_result["failures"]
+
+                # Safety-net: if tests failed but we found 0 structured failures
+                # (e.g. pytest-json-report not installed, or unusual error format),
+                # synthesize a single UNKNOWN failure from the raw output so
+                # the pipeline doesn't incorrectly declare success.
+                if not raw_failures:
+                    print("[Supervisor] ⚠ Tests failed but no structured failures parsed. "
+                          "Injecting synthetic UNKNOWN failure from raw output.")
+                    raw_failures = [{
+                        "file": "",
+                        "test_id": "unknown",
+                        "line": "",
+                        "error_message": test_result.get("raw_output", "Unknown error")[:1000],
+                        "raw_output": test_result.get("raw_output", ""),
+                    }]
+
                 print(f"[Supervisor] Found {len(raw_failures)} failure(s).")
 
                 # ── Step 4: Classify Failures ──────────────────────────
@@ -165,8 +183,9 @@ class Supervisor:
 
         except Exception as e:
             print(f"[Supervisor] FATAL: {e}")
-            raw_failures = []
-            classified_failures = []
+            traceback.print_exc()
+            # Do NOT wipe classified_failures — preserve whatever was found
+            # before the crash so the frontend still shows detected failures.
         finally:
             shutil.rmtree(workspace, ignore_errors=True)
 
@@ -176,7 +195,7 @@ class Supervisor:
         results = build_results(
             repo_url=self.repo_url,
             branch="main",
-            failures=classified_failures if 'classified_failures' in dir() else [],
+            failures=classified_failures,
             fixes=all_fixes,
             ci_timeline=ci_timeline,
             time_taken_seconds=time_taken,
@@ -192,11 +211,33 @@ class Supervisor:
 
     def _clone_repo(self, target_path: str) -> None:
         import subprocess
-        result = subprocess.run(
-            ["git", "clone", self.repo_url, target_path],
-            capture_output=True,
-            text=True,
-            timeout=120,
-        )
-        if result.returncode != 0:
-            raise RuntimeError(f"Clone failed: {result.stderr}")
+
+        clone_url = self.repo_url
+        # Embed GITHUB_TOKEN for push access
+        github_token = os.environ.get("GITHUB_TOKEN", "")
+        if github_token and "github.com" in clone_url:
+            # Convert https://github.com/... to https://<token>@github.com/...
+            clone_url = clone_url.replace(
+                "https://github.com",
+                f"https://{github_token}@github.com",
+            )
+
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                result = subprocess.run(
+                    ["git", "clone", clone_url, target_path],
+                    capture_output=True,
+                    text=True,
+                    timeout=120,
+                )
+                if result.returncode == 0:
+                    break
+                # If failed, raise to trigger except block
+                raise RuntimeError(result.stderr)
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    raise RuntimeError(f"Clone failed after {max_retries} attempts: {e}")
+                print(f"[Supervisor] Clone attempt {attempt+1} failed. Retrying in 2s...")
+                import time
+                time.sleep(2 * (attempt + 1))
