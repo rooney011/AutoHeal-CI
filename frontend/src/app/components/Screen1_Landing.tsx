@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { GlassCard } from './ui/GlassCard';
-import { Button } from './ui/Button';
-import { Input } from './ui/Input';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
 import { Terminal, Zap, Shield, GitBranch } from 'lucide-react';
 import { Label } from "./ui/label";
 
