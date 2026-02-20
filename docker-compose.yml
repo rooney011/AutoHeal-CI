@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  backend:
+    build: backend/
+    container_name: autoheal_backend
+    restart: always
+    ports:
+      - "8000:8000"
+    env_file:
+      - backend/.env
+    volumes:
+      - ./results:/app/results
+    networks:
+      - app-network
+
+  frontend:
+    build: frontend/
+    container_name: autoheal_frontend
+    restart: always
+    ports:
+      - "5173:80" # Map host 5173 to container 80 (nginx)
+    networks:
+      - app-network
+    depends_on:
+      - backend
+
+networks:
+  app-network:
+    driver: bridge
