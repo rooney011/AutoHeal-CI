@@ -167,6 +167,13 @@ def run_fix_retry_loop(
             print("[PatchValidator] No patch generated. Aborting retry loop.")
             break
 
+        # Read the actual file the patch targets (may differ from failure/test file)
+        patch_file_backup = read_file_content(repo_path, patch["file"])
+        if patch_file_backup is None:
+            print(f"[PatchValidator] Patch targets unknown file '{patch['file']}'. Skipping.")
+            iterations.append({"attempt": attempt, "passed": False, "reason": "patch_target_not_found", "duration_s": round(time.time() - start_time, 2)})
+            continue
+
         # Apply patch
         applied = apply_patch(repo_path, patch)
         if not applied:
@@ -186,7 +193,7 @@ def run_fix_retry_loop(
             break
         else:
             print(f"[PatchValidator] ❌ Tests FAILED. Rolling back...")
-            rollback_patch(repo_path, patch, file_content)
+            rollback_patch(repo_path, patch, patch_file_backup)
             iterations.append({"attempt": attempt, "passed": False, "reason": "test_failure", "duration_s": duration})
 
     return {

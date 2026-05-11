@@ -28,8 +28,6 @@ function getBugTypeStyle(type: string) {
 // ─── Interfaces ───────────────────────────────────────────────────────────
 interface RunSummary {
   repoUrl: string;
-  teamName: string;
-  leaderName: string;
   branchName: string;
   totalFailures: number;
   fixesApplied: number;
@@ -111,17 +109,6 @@ export function ResultsScreen({ summary, detectedFailures, fixes, timeline, logs
                  className="text-[#60a5fa] text-sm font-normal break-all hover:text-[#93c5fd] transition-colors">
                 {summary.repoUrl}
               </a>
-            </div>
-
-            <div className="flex gap-6 md:gap-10">
-              <div className="flex flex-col gap-1 flex-1">
-                <span className="text-[#6b7280] text-[10px] font-bold tracking-[1.5px] uppercase">Team Name</span>
-                <span className="text-[#e5e7eb] text-sm font-medium">{summary.teamName}</span>
-              </div>
-              <div className="flex flex-col gap-1 flex-1">
-                <span className="text-[#6b7280] text-[10px] font-bold tracking-[1.5px] uppercase">Team Leader</span>
-                <span className="text-[#e5e7eb] text-sm font-medium">{summary.leaderName}</span>
-              </div>
             </div>
 
             <div className="flex flex-col gap-1.5">

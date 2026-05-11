@@ -6,13 +6,11 @@ import { Terminal, Zap, Shield, GitBranch } from 'lucide-react';
 import { Label } from "./ui/label";
 
 interface LandingScreenProps {
-  onStart: (data: { repoUrl: string; teamName: string; leaderName: string }) => void;
+  onStart: (data: { repoUrl: string }) => void;
 }
 
 export function LandingScreen({ onStart }: LandingScreenProps) {
   const [repoUrl, setRepoUrl] = useState('');
-  const [teamName, setTeamName] = useState('');
-  const [leaderName, setLeaderName] = useState('');
   const [validationError, setValidationError] = useState('');
 
   const validateGitUrl = (url: string) => {
@@ -30,7 +28,7 @@ export function LandingScreen({ onStart }: LandingScreenProps) {
     }
   };
 
-  const isValid = repoUrl.length > 0 && teamName.length > 0 && leaderName.length > 0 && !validationError;
+  const isValid = repoUrl.length > 0 && !validationError;
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[80vh] w-full max-w-[800px] mx-auto gap-8">
@@ -86,31 +84,11 @@ export function LandingScreen({ onStart }: LandingScreenProps) {
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="team-name">Team Name</Label>
-              <Input
-                id="team-name"
-                placeholder="e.g. Heart Pirates"
-                value={teamName}
-                onChange={(e) => setTeamName(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="leader-name">Team Leader Name</Label>
-              <Input
-                id="leader-name"
-                placeholder="e.g. Arjun Sarkar"
-                value={leaderName}
-                onChange={(e) => setLeaderName(e.target.value)}
-              />
-            </div>
-          </div>
         </div>
 
         <div className="pt-4">
           <Button
-            onClick={() => onStart({ repoUrl, teamName, leaderName })}
+            onClick={() => onStart({ repoUrl })}
             disabled={!isValid}
             className="w-full text-base bg-gradient-to-r from-[#446592] to-[#3a5a85] hover:from-[#3a5a85] hover:to-[#324F7B] disabled:from-[#2a3a4f] disabled:to-[#2a3a4f] text-white border-transparent rounded-lg font-semibold transition-all shadow-lg shadow-[#446592]/10 hover:shadow-[#446592]/20 py-3"
           >

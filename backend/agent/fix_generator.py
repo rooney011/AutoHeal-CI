@@ -48,8 +48,12 @@ def generate_fix(
         return None
 
     api_key = os.environ.get("LLM_API_KEY") or os.environ.get("GEMINI_API_KEY")
-    base_url = os.environ.get("LLM_BASE_URL", "https://api.openai.com/v1")
     model_name = os.environ.get("LLM_MODEL", "gpt-4o")
+    if model_name.startswith("gemini"):
+        default_base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
+    else:
+        default_base_url = "https://api.openai.com/v1"
+    base_url = os.environ.get("LLM_BASE_URL", default_base_url)
 
     # Special handling for Groq or other providers if needed
     if "groq" in base_url and not model_name.startswith("llama") and not model_name.startswith("mixtral") and not model_name.startswith("gemma"):
@@ -74,24 +78,34 @@ def generate_fix(
 
     client = OpenAI(api_key=api_key, base_url=base_url)
 
-    try:
-        print(f"[FixGen] Using model: {model_name} via {base_url}")
-        response = client.chat.completions.create(
-            model=model_name,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_message}
-            ],
-            temperature=0,
-            max_tokens=1024,
-            response_format={"type": "json_object"}
-        )
-        raw = response.choices[0].message.content.strip()
-        return _parse_and_validate(raw)
+    import time as _time
+    for attempt in range(3):
+        try:
+            print(f"[FixGen] Using model: {model_name} via {base_url} (attempt {attempt + 1})")
+            response = client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_message}
+                ],
+                temperature=0,
+                max_tokens=1024,
+            )
+            raw = response.choices[0].message.content.strip()
+            return _parse_and_validate(raw)
 
-    except Exception as e:
-        print(f"[FixGen] LLM call failed: {e}")
-        return None
+        except Exception as e:
+            err_str = str(e)
+            if "429" in err_str or "rate" in err_str.lower() or "quota" in err_str.lower() or "RetryInfo" in err_str:
+                wait = 10 * (attempt + 1)
+                print(f"[FixGen] Rate limited. Waiting {wait}s before retry...")
+                _time.sleep(wait)
+            else:
+                print(f"[FixGen] LLM call failed: {e}")
+                return None
+
+    print("[FixGen] All retry attempts exhausted (rate limit).")
+    return None
 
 
 

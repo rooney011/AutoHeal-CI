@@ -145,11 +145,9 @@ export async function getSchema(): Promise<Record<string, unknown>> {
 
 // ─── Data Mappers (backend → frontend props) ──────────────────────────────────
 
-export function mapResultsToProps(results: AgentResults, teamName: string, leaderName: string) {
+export function mapResultsToProps(results: AgentResults) {
   const summary = {
     repoUrl: results.repo,
-    teamName,
-    leaderName,
     branchName: results.fixes[0]?.branch || results.branch,
     totalFailures: results.failures.length,
     fixesApplied: results.fixes.filter(f =>

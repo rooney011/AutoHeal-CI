@@ -19,7 +19,7 @@ const POLL_INTERVAL_MS = 2000;
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('landing');
-  const [runData, setRunData] = useState({ repoUrl: '', teamName: '', leaderName: '' });
+  const [runData, setRunData] = useState({ repoUrl: '' });
   const [logs, setLogs] = useState<string[]>([]);
   const [steps, setSteps] = useState<Step[]>(inferStepsFromStatus('idle', null));
   const [agentResults, setAgentResults] = useState<AgentResults | null>(null);
@@ -85,7 +85,7 @@ export default function App() {
   }, [screen]);
 
   // ── Handle start ───────────────────────────────────────────────────────────
-  const handleStart = async (data: { repoUrl: string; teamName: string; leaderName: string }) => {
+  const handleStart = async (data: { repoUrl: string }) => {
     setRunData(data);
     setLogs([]);
     setError(null);
@@ -125,7 +125,7 @@ export default function App() {
   const handleReset = () => {
     if (pollRef.current) clearInterval(pollRef.current);
     setScreen('landing');
-    setRunData({ repoUrl: '', teamName: '', leaderName: '' });
+    setRunData({ repoUrl: '' });
     setLogs([]);
     setError(null);
     setAgentResults(null);
@@ -136,14 +136,12 @@ export default function App() {
   // ── Results props ──────────────────────────────────────────────────────────
   const getResultProps = () => {
     if (agentResults) {
-      return mapResultsToProps(agentResults, runData.teamName, runData.leaderName);
+      return mapResultsToProps(agentResults);
     }
     // Fallback if error (show empty state)
     return {
       summary: {
         repoUrl: runData.repoUrl || '—',
-        teamName: runData.teamName || '—',
-        leaderName: runData.leaderName || '—',
         branchName: '—',
         totalFailures: 0,
         fixesApplied: 0,
